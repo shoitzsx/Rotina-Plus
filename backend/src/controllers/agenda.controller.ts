@@ -23,11 +23,13 @@ export async function getEvent(req: AuthRequest, res: Response): Promise<void> {
 
 export async function createEvent(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { title, start_date, end_date } = req.body;
-    if (!title || !start_date || !end_date) {
-      res.status(400).json({ error: 'title, start_date e end_date são obrigatórios' });
+    const { title, date } = req.body as { title?: string; date?: string };
+
+    if (!title || !date) {
+      res.status(400).json({ error: 'title e date são obrigatórios' });
       return;
     }
+
     const data = await agendaService.createEvent(req.userId!, req.body);
     res.status(201).json(data);
   } catch (error: unknown) {

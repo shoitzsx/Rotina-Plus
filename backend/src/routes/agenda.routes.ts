@@ -6,15 +6,16 @@ import {
   updateEvent,
   deleteEvent,
 } from '../controllers/agenda.controller';
-import { authMiddleware } from '../middlewares/auth.middleware';
+import { devMiddleware } from '../middlewares/dev.middleware';
+// import { authMiddleware } from '../middlewares/auth.middleware'; // ← trocar quando implementar auth
 
 const router = Router();
-router.use(authMiddleware);
+router.use(devMiddleware);
 
-router.get('/',     getEvents);
-router.get('/:id',  getEvent);
-router.post('/',    createEvent);
-router.put('/:id',  updateEvent);
+router.get('/',       getEvents);
+router.get('/:id',    getEvent);
+router.post('/',      createEvent);
+router.put('/:id',    updateEvent);
 router.delete('/:id', deleteEvent);
 
 export default router;

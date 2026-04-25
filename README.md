@@ -217,7 +217,7 @@ Scan the QR code with the **Expo Go** app on your phone, or press `a`/`i` for An
 
 ## 👤 Author
 
-Made with ❤️ by **[Your Name]**
+Made with ❤️ by **Lucas Izaias**
 
 [![GitHub](https://img.shields.io/badge/GitHub-100000?style=flat&logo=github&logoColor=white)](https://github.com/your-username)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/your-profile)

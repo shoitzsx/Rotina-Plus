@@ -1,48 +1,87 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1';
+/// <reference types="vite/client" />
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '/api').replace(/\/+$/, '');
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-interface RequestOptions {
-  method?: HttpMethod;
+interface RequestOptions extends Omit<RequestInit, 'body' | 'method'> {
   body?: unknown;
-  token?: string;
+  headers?: HeadersInit;
+  method?: HttpMethod;
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly payload?: unknown,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+function normalizePath(path: string): string {
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
+function extractErrorMessage(payload: unknown): string {
+  if (payload && typeof payload === 'object') {
+    if ('message' in payload && typeof payload.message === 'string') {
+      return payload.message;
+    }
+
+    if ('error' in payload && typeof payload.error === 'string') {
+      return payload.error;
+    }
+  }
+
+  return 'Nao foi possivel completar a requisicao.';
+}
+
+async function parseResponse(response: Response): Promise<unknown> {
+  const text = await response.text();
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, token } = options;
-
-  const headers: HeadersInit = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const { body, headers, method = 'GET', ...rest } = options;
+  const response = await fetch(`${API_BASE_URL}${normalizePath(path)}`, {
+    ...rest,
     method,
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  const json = await response.json();
+  const payload = await parseResponse(response);
 
   if (!response.ok) {
-    throw new Error(json.error ?? 'Erro inesperado na requisição');
+    throw new ApiError(extractErrorMessage(payload), response.status, payload);
   }
 
-  return json as T;
+  return payload as T;
 }
 
-/* Convenience wrappers */
 export const api = {
-  get:    <T>(path: string, token?: string) =>
-    request<T>(path, { method: 'GET', token }),
-
-  post:   <T>(path: string, body: unknown, token?: string) =>
-    request<T>(path, { method: 'POST', body, token }),
-
-  put:    <T>(path: string, body: unknown, token?: string) =>
-    request<T>(path, { method: 'PUT', body, token }),
-
-  patch:  <T>(path: string, body: unknown, token?: string) =>
-    request<T>(path, { method: 'PATCH', body, token }),
-
-  delete: <T>(path: string, token?: string) =>
-    request<T>(path, { method: 'DELETE', token }),
+  delete: <T>(path: string, options?: Omit<RequestOptions, 'method'>) =>
+    request<T>(path, { ...options, method: 'DELETE' }),
+  get: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
+    request<T>(path, { ...options, method: 'GET' }),
+  patch: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>
+    request<T>(path, { ...options, body, method: 'PATCH' }),
+  post: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>
+    request<T>(path, { ...options, body, method: 'POST' }),
+  put: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>
+    request<T>(path, { ...options, body, method: 'PUT' }),
 };
